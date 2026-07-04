@@ -1,18 +1,32 @@
 const db = require("../config/db");
 
 // create tag
-const createTag = async (name) => {
-    const existing = await getTagByName(name);
-    if (existing) return existing;
+// const createTag = async (name) => {
+//     const existing = await getTagByName(name);
+//     if (existing) return existing;
 
+//     const query = `
+//         INSERT INTO tag (name)
+//         VALUES ($1)
+//         RETURNING *;
+//     `;
+
+//     const result = await db.query(query, [name]);
+//     return result.rows[0];
+// };
+
+const createTag = async (name) => {
     const query = `
-        INSERT INTO tag (name)
-        VALUES ($1)
+        INSERT INTO tag(name)
+        VALUES($1)
+        ON CONFLICT (name)
+        DO NOTHING
         RETURNING *;
     `;
 
     const result = await db.query(query, [name]);
-    return result.rows[0];
+
+    return result.rows[0] || null;
 };
 
 // get tag by name
@@ -28,17 +42,6 @@ const getTagByName = async (name) => {
 };
 
 // attach tag to post
-// const attachTagToPost = async (post_id, tag_id) => {
-//     const query = `
-//         INSERT INTO posttag (post_id, tag_id)
-//         VALUES ($1, $2)
-//         RETURNING *;
-//     `;
-
-//     const result = await db.query(query, [post_id, tag_id]);
-//     return result.rows[0];
-// };
-
 const attachTagToPost = async (post_id, tag_id) => {
     const query = `
         INSERT INTO posttag (post_id, tag_id)
@@ -49,6 +52,16 @@ const attachTagToPost = async (post_id, tag_id) => {
 
     const result = await db.query(query, [post_id, tag_id]);
     return result.rows[0];
+};
+
+// remove all tags from a post
+const removeTagsFromPost = async (post_id) => {
+    const query = `
+        DELETE FROM posttag
+        WHERE post_id = $1;
+    `;
+
+    await db.query(query, [post_id]);
 };
 
 // get posts by tag
@@ -96,6 +109,7 @@ module.exports = {
     createTag,
     getTagByName,
     attachTagToPost,
+    removeTagsFromPost,
     getPostsByTag,
     getTagsByPost,
     getAllTags
