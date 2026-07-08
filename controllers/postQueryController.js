@@ -10,7 +10,8 @@ const getPosts = async (req, res) => {
             sortBy,
             order,
             status,
-            userId
+            userId,
+            q
         } = req.query;
 
         // DEFAULTS
@@ -27,7 +28,8 @@ const getPosts = async (req, res) => {
             sortBy,
             order,
             status,
-            userId
+            userId,
+            q
         });
 
         return res.status(200).json({

@@ -2,6 +2,7 @@ const {
     createTag,
     getTagByName,
     attachTagToPost,
+    removeTagsFromPost,
     getPostsByTag,
     getTagsByPost,
     getAllTags
@@ -9,20 +10,60 @@ const {
 
 const { getPostById } = require("../models/postModel");
 
-// create tag
+// Create tag
+// const createTagController = async (req, res) => {
+//     try {
+//         const { name } = req.body;
+
+//         const existing = await getTagByName(name);
+
+//         if (existing) {
+//             return res.status(400).json({
+//                 message: "Tag already exists"
+//             });
+//         }
+
+//         const tag = await createTag(name);
+
+//         return res.status(201).json({
+//             message: "Tag created",
+//             data: tag
+//         });
+
+//     } catch (err) {
+//         return res.status(500).json({
+//             message: err.message
+//         });
+//     }
+// };
+
 const createTagController = async (req, res) => {
     try {
         const { name } = req.body;
 
-        const existing = await getTagByName(name);
-
-        if (existing) {
+        // 1. validate input
+        if (!name || typeof name !== "string") {
             return res.status(400).json({
-                message: "Tag already exists"
+                message: "Tag name is required"
             });
         }
 
-        const tag = await createTag(name);
+        const cleanName = name.trim().toLowerCase();
+
+        if (cleanName.length < 2) {
+            return res.status(400).json({
+                message: "Tag too short"
+            });
+        }
+
+        // 2. create tag safely
+        const tag = await createTag(cleanName);
+
+        if (!tag) {
+            return res.status(200).json({
+                message: "Tag already exists or not created",
+            });
+        }
 
         return res.status(201).json({
             message: "Tag created",
@@ -30,17 +71,16 @@ const createTagController = async (req, res) => {
         });
 
     } catch (err) {
+        console.error("TAG CREATE ERROR:", err); // IMPORTANT
         return res.status(500).json({
-            message: err.message
+            message: "Internal server error"
         });
     }
 };
 
-// attach tag to post
+// Attach a single tag to a post
 const attachTag = async (req, res) => {
     try {
-        console.log("BODY:", req.body);
-
         const { post_id, tag_id } = req.body;
 
         const post = await getPostById(post_id);
@@ -51,12 +91,7 @@ const attachTag = async (req, res) => {
             });
         }
 
-        if (post.status !== "published") {
-            return res.status(403).json({
-                message: "Cannot tag draft post"
-            });
-        }
-
+        // Allow both draft and published posts
         const result = await attachTagToPost(post_id, tag_id);
 
         return res.status(201).json({
@@ -71,7 +106,39 @@ const attachTag = async (req, res) => {
     }
 };
 
-// get posts by tag
+// Replace all tags of a post
+const replaceTags = async (req, res) => {
+    try {
+        const { post_id, tag_ids } = req.body;
+
+        const post = await getPostById(post_id);
+
+        if (!post || post.is_deleted) {
+            return res.status(404).json({
+                message: "Post not found"
+            });
+        }
+
+        // Remove existing tags
+        await removeTagsFromPost(post_id);
+
+        // Attach new tags
+        for (const tagId of tag_ids) {
+            await attachTagToPost(post_id, tagId);
+        }
+
+        return res.status(200).json({
+            message: "Tags updated successfully"
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            message: err.message
+        });
+    }
+};
+
+// Get posts by tag
 const filterPostsByTag = async (req, res) => {
     try {
         const { tagId } = req.params;
@@ -90,7 +157,7 @@ const filterPostsByTag = async (req, res) => {
     }
 };
 
-// get tags by post
+// Get tags of a post
 const getTagsByPostController = async (req, res) => {
     try {
         const { postId } = req.params;
@@ -108,7 +175,7 @@ const getTagsByPostController = async (req, res) => {
     }
 };
 
-// get all tags
+// Get all tags
 const getAllTagsController = async (req, res) => {
     try {
         const tags = await getAllTags();
@@ -127,6 +194,7 @@ const getAllTagsController = async (req, res) => {
 module.exports = {
     createTagController,
     attachTag,
+    replaceTags,
     filterPostsByTag,
     getTagsByPostController,
     getAllTagsController

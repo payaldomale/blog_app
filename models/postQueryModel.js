@@ -6,13 +6,20 @@ const getPostsQuery = async ({
     sortBy,
     order,
     status,
-    userId
+    userId,
+    q
 }) => {
 
     let baseQuery = `
-        SELECT *
-        FROM posts
-        WHERE is_deleted = FALSE
+        SELECT
+        p.*,
+        u.username
+    FROM posts p
+    JOIN users u
+    ON p.author_id = u.id
+    WHERE 
+    p.is_deleted = FALSE
+    AND p.status = 'published'
     `;
 
     const values = [];
@@ -29,6 +36,22 @@ const getPostsQuery = async ({
     if (userId) {
         baseQuery += ` AND author_id = $${index}`;
         values.push(userId);
+        index++;
+    }
+
+    // SEARCH
+    if (q) {
+        baseQuery += `
+        AND (
+            p.title ILIKE $${index}
+            OR
+            p.content ILIKE $${index}
+            OR
+            u.username ILIKE $${index}
+        )
+    `;
+
+        values.push(`%${q}%`);
         index++;
     }
 

@@ -4,6 +4,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
     createTagController,
     attachTag,
+    replaceTags,
     filterPostsByTag,
     getTagsByPostController,
     getAllTagsController
@@ -12,18 +13,42 @@ const {
 const router = express.Router();
 
 // create tag
-router.post("/tag/create", authMiddleware, createTagController);
+router.post(
+    "/tag/create",
+    authMiddleware,
+    createTagController
+);
 
-// attach tag to post
-router.post("/tag/attach", authMiddleware, attachTag);
+// attach single tag
+router.post(
+    "/tag/attach",
+    authMiddleware,
+    attachTag
+);
 
-// get all tags (FOR TagSelector)
-router.get("/tag/all", getAllTagsController);
+// replace all tags
+router.put(
+    "/tag/replace",
+    authMiddleware,
+    replaceTags
+);
+
+// get all tags
+router.get(
+    "/tag/all",
+    getAllTagsController
+);
 
 // get posts by tag
-router.get("/tag/:tagId/posts", filterPostsByTag);
+router.get(
+    "/tag/:tagId/posts",
+    filterPostsByTag
+);
 
 // get tags by post
-router.get("/post/:postId/tags", getTagsByPostController);
+router.get(
+    "/post/:postId/tags",
+    getTagsByPostController
+);
 
 module.exports = router;
